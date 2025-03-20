@@ -73,27 +73,19 @@ def get_gridpoint(latitude, longitude):
             - gridId (str): The grid ID.
             - gridX (int): The grid X coordinate.
             - gridY (int): The grid Y coordinate.
-            - forecast_lat (float): The latitude of the forecast area.
-            - forecast_lon (float): The longitude of the forecast area.
     """
     url = f"{NWS_BASE_URL}/points/{latitude},{longitude}"
     response = requests.get(url, headers={"User-Agent": "flask-weather-app"})
+
     if response.status_code == 200:
         data = response.json()
-
-        # Extract forecast area coordinates
-        rel_location = data["properties"]["relativeLocation"]["geometry"]["coordinates"]
-        forecast_lat = rel_location[1]  # Latitude
-        forecast_lon = rel_location[0]  # Longitude
-
         return (
             data["properties"]["gridId"],
             data["properties"]["gridX"],
             data["properties"]["gridY"],
-            forecast_lat,
-            forecast_lon,
         )
-    return None, None, None, None, None
+
+    return None, None, None
 
 
 def calculate_distance(lat1, lon1, lat2, lon2):
@@ -165,22 +157,24 @@ def process_weather_data(data):
     """
 
     # Extract city, state, and coordinates
-    latitude = data.get("latitude")
-    longitude = data.get("longitude")
+    latitude = data.get("latitude", 0.0)
+    longitude = data.get("longitude", 0.0)
 
     # Generate dynamic location_id
     location_id = generate_location_id(latitude, longitude)
 
-    # Extract distances
-    lat_distance = float(data["latitude_distance_km"])
-    lon_distance = float(data["longitude_distance_km"])
-    total_distance = float(data["great_circle_distance_km"])
+    # Extract distances with fallback defaults
+    lat_distance = float(data.get("latitude_distance_km", 0.0))
+    lon_distance = float(data.get("longitude_distance_km", 0.0))
+    total_distance = float(data.get("great_circle_distance_km", 0.0))
 
     # Daily forecast processing
-    daily = data["current_forecast"]
-    daily_time = parse_iso_time(daily["startTime"])
-    daily_temp = float(daily["temperature"])
-    daily_wind_speed = daily["windSpeed"]
+    daily = data.get("current_forecast", {})
+
+    # Handle missing values safely
+    daily_time = parse_iso_time(daily.get("startTime", datetime.utcnow().isoformat()))
+    daily_temp = float(daily.get("temperature", 0.0))
+    daily_wind_speed = daily.get("windSpeed", "0 mph")
 
     # Calculate average wind speed
     wind_speed_ls = extract_wind_speeds(daily_wind_speed)
@@ -189,10 +183,12 @@ def process_weather_data(data):
     # Prepare daily forecast data
     daily_forecast = {
         "location_id": location_id,
-        "isDaytime": str(daily["isDaytime"]),
-        "windDirection": daily["windDirection"],
+        "isDaytime": str(daily.get("isDaytime", "false")),
+        "windDirection": daily.get("windDirection", ""),
         "temperature": daily_temp,
-        "probabilityOfPrecipitation": daily["probabilityOfPrecipitation"]["value"],
+        "probabilityOfPrecipitation": daily.get("probabilityOfPrecipitation", {}).get(
+            "value", 0.0
+        ),
         "windSpeed": avg_wind_speed,
         "latitude_distance_km": lat_distance,
         "longitude_distance_km": lon_distance,
@@ -203,31 +199,35 @@ def process_weather_data(data):
     # Hourly forecast processing
     hourly_forecasts = []
 
-    for hour in data["hourly_forecast"]:
-        hourly_time = parse_iso_time(hour["startTime"])
-        hourly_temp = float(hour["temperature"])
+    for hour in data.get("hourly_forecast", []):
+        hourly_time = parse_iso_time(
+            hour.get("startTime", datetime.utcnow().isoformat())
+        )
+        hourly_temp = float(hour.get("temperature", 0.0))
 
         # Extract and normalize wind speed
         wind_speed = (
-            float(hour["windSpeed"].split(" ")[0]) if " " in hour["windSpeed"] else 0.0
+            float(hour.get("windSpeed", "0 mph").split(" ")[0])
+            if " " in hour.get("windSpeed", "0 mph")
+            else 0.0
         )
 
         # Derived metrics
         temp_ratio = round(hourly_temp / daily_temp, 2) if daily_temp != 0 else 0
         wind_exceeds_avg = int(wind_speed > avg_wind_speed)
-        dew_point = float(hour["dewpoint"]["value"])
+        dew_point = float(hour.get("dewpoint", {}).get("value", 0.0))
 
         # Prepare hourly forecast data
         hourly_forecasts.append(
             {
                 "location_id": location_id,
-                "isDaytime": str(hour["isDaytime"]),
-                "windDirection": hour["windDirection"],
+                "isDaytime": str(hour.get("isDaytime", "false")),
+                "windDirection": hour.get("windDirection", ""),
                 "temperature": hourly_temp,
-                "probabilityOfPrecipitation": hour["probabilityOfPrecipitation"][
-                    "value"
-                ],
-                "humidity": hour["relativeHumidity"]["value"],
+                "probabilityOfPrecipitation": hour.get(
+                    "probabilityOfPrecipitation", {}
+                ).get("value", 0.0),
+                "humidity": hour.get("relativeHumidity", {}).get("value", 0.0),
                 "windSpeed": wind_speed,
                 "dewpoint": dew_point,
                 "temperature_ratio": temp_ratio,
