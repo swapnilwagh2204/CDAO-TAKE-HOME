@@ -25,6 +25,15 @@ jobs:
         pip install -r requirements.txt
 
     - name: Run tests
+      env:
+        INFLUXDB_INIT_USERNAME: ${{ secrets.INFLUXDB_INIT_USERNAME }}
+        INFLUXDB_INIT_PASSWORD: ${{ secrets.INFLUXDB_INIT_PASSWORD }}
+        INFLUXDB_INIT_ADMIN_TOKEN: ${{ secrets.INFLUXDB_INIT_ADMIN_TOKEN }}
+        INFLUXDB_INIT_ORG: ${{ secrets.INFLUXDB_INIT_ORG }}
+        INFLUXDB_INIT_BUCKET: ${{ secrets.INFLUXDB_INIT_BUCKET }}
+        NWS_BASE_URL: ${{ secrets.NWS_BASE_URL }}
+        APP_BASE_URL: ${{ secrets.APP_BASE_URL }}
+        INFLUXDB_HOST_URL: ${{ secrets.INFLUXDB_HOST_URL }}
       run: |
         pytest tests
 
