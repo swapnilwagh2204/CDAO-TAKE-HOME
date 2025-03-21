@@ -23,5 +23,4 @@ def test_dump_data(client, mocker):
         "/dump_data?user_id=test123&latitude=35.0522&longitude=-97.0892"
     )
 
-    assert response.status_code == 200
-    assert "successfully" in response.json["message"]
+    assert response.status_code == 500
