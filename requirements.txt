@@ -1,0 +1,5 @@
+flask
+flasgger
+python_dotenv
+influxdb_client
+requests
