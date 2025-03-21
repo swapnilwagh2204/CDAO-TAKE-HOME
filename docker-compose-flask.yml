@@ -1,5 +1,9 @@
 version: "3.9"
 
+networks:
+  weather-net:  # same network as InfluxDB
+    driver: bridge
+
 services:
   # Flask App Service
   flask_app:
@@ -7,12 +11,14 @@ services:
       context: .
       dockerfile: Dockerfile
     ports:
-      - "5001:5000"   # Map local port 5001 to container port 5000
+      - "5000:5000"   # Map local port 5001 to container port 5000
     environment:
-      - APP_BASE_URL=${APP_BASE_URL}
+      - APP_BASE_URL=http://flask_app:5000
       - NWS_BASE_URL=${NWS_BASE_URL}
-      - INFLUXDB_HOST_URL=${INFLUXDB_HOST_URL} # Ensure this matches the InfluxDB's URL
+      - INFLUXDB_HOST_URL=http://influxdb:8086  # Use the InfluxDB container name
       - INFLUXDB_INIT_ADMIN_TOKEN=${INFLUXDB_INIT_ADMIN_TOKEN}
       - INFLUXDB_INIT_ORG=${INFLUXDB_INIT_ORG}
       - INFLUXDB_INIT_BUCKET=${INFLUXDB_INIT_BUCKET}
     restart: always
+    networks:
+      - weather-net

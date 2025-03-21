@@ -290,12 +290,3 @@ def dump_weather_data_to_db(processed_data):
             .time(hour["time"], WritePrecision.S)
         )
         write_api.write(bucket=INFLUXDB_BUCKET, org=INFLUXDB_ORG, record=hourly_point)
-
-
-#  Key Benefits
-# Unique location_id:
-
-
-# Avoids hardcoding location IDs.
-# Automatically generates IDs based on location data.
-# Enhanced InfluxDB Records:

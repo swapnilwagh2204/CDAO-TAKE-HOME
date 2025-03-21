@@ -1,5 +1,9 @@
 version: "3.9"
 
+networks:
+  weather-net:
+    driver: bridge
+
 services:
   # InfluxDB Service
   influxdb:
@@ -16,6 +20,8 @@ services:
       - DOCKER_INFLUXDB_INIT_BUCKET=${INFLUXDB_INIT_BUCKET}
       - DOCKER_INFLUXDB_INIT_ADMIN_TOKEN=${INFLUXDB_INIT_ADMIN_TOKEN}
     restart: always
+    networks:
+      - weather-net
 
 volumes:
   influxdb-storage:

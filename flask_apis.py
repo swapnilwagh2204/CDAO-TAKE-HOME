@@ -9,7 +9,6 @@ from utils import (
     get_gridpoint,
 )
 
-# Load environment variables
 load_dotenv()
 
 # Flask app initialization
@@ -27,19 +26,35 @@ logging.basicConfig(
 )
 
 
-# --------------------
 # Health Check Endpoint
-# --------------------
 @app.route("/health", methods=["GET"])
 def health_check():
-    """API Endpoint for Flask server health check."""
+    """
+    API Endpoint for Flask server health check.
+    ---
+    summary: Check the server health status
+    description: Returns a message indicating whether the server is healthy.
+    responses:
+      200:
+        description: Server is healthy
+        content:
+          application/json:
+            schema:
+              type: string
+              example: "Server is healthy"
+      500:
+        description: Server error
+        content:
+          application/json:
+            schema:
+              type: string
+              example: "Server error"
+    """
     logging.info("Health check request received.")
     return jsonify("Server is healthy"), 200
 
 
-# --------------------
 # Dump Data Endpoint
-# --------------------
 @app.route("/dump_data", methods=["POST"])
 def dump_data():
     """
@@ -95,19 +110,19 @@ def dump_data():
         ), 400
 
     try:
-        # ✅ Fetch gridpoint details
+        # Fetch gridpoint details
         office, grid_x, grid_y = get_gridpoint(latitude, longitude)
         if not all([office, grid_x, grid_y]):
             logging.error("Failed to retrieve gridpoint data.")
             return jsonify({"error": "Failed to retrieve gridpoint data."}), 500
 
-        # ✅ Fetch weather data
+        # Fetch weather data
         current_forecast, hourly_forecast = get_forecast(office, grid_x, grid_y)
         if not current_forecast or not hourly_forecast:
             logging.error("Failed to retrieve forecast data.")
             return jsonify({"error": "Failed to retrieve forecast data."}), 500
 
-        # ✅ Create a weather data object
+        # Create a weather data object
         weather_data = {
             "user_id": user_id,
             "latitude": latitude,
@@ -116,13 +131,14 @@ def dump_data():
             "hourly_forecast": hourly_forecast,
         }
 
-        # ✅ Process and store the weather data
+        # Process and store the weather data
         processed_data = process_weather_data(weather_data)
+        logging.info("Processed weather data")
         dump_weather_data_to_db(processed_data)
 
         logging.info("Successfully dumped weather data into the database.")
 
-        # ✅ Return the dumped weather data in the response
+        # Return the dumped weather data in the response
         return jsonify(
             {
                 "message": "Data successfully dumped into the database.",
@@ -137,8 +153,6 @@ def dump_data():
         ), 500
 
 
-# --------------------
 # Main Execution
-# --------------------
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
