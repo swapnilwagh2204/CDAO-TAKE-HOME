@@ -102,6 +102,7 @@ Objective
     APP_BASE_URL=http://flask_app:5000
 
 4.Trigger the workflow and the code will be deployed on EC2. 
+
     Access flask Apis documentation 
         http://<EC2-PUBLIC-IP>:5000/apidocs
         
